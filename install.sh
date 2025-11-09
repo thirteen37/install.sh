@@ -90,9 +90,16 @@ fi
 echo
 echo "${GREEN}Cleaning up..."
 brew update && brew upgrade && brew cleanup && brew doctor
-mkdir -p ~/Library/LaunchAgents
-brew tap homebrew/autoupdate
-brew autoupdate start $HOMEBREW_UPDATE_FREQUENCY --upgrade --cleanup --immediate --sudo
+
+# Auto-update
+echo
+echo -n "${RED}Auto-update brew? ${NC}[Y/n]"
+read REPLY
+if [[ -z $REPLY || $REPLY =~ ^[Yy]$ ]]; then
+  mkdir -p ~/Library/LaunchAgents
+  brew tap homebrew/autoupdate
+  brew autoupdate start $HOMEBREW_UPDATE_FREQUENCY --upgrade --cleanup --immediate --sudo
+fi
 
 # Settings
 echo
@@ -125,23 +132,6 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     dockutil --remove "$app" &>/dev/null
   done
 fi
-
-# Git Login
-echo
-echo "${GREEN}SET UP GIT"
-echo
-
-echo "${RED}Please enter your git username:${NC}"
-read name
-echo "${RED}Please enter your git email:${NC}"
-read email
-
-git config --global user.name "$name"
-git config --global user.email "$email"
-git config --global color.ui true
-
-echo
-echo "${GREEN}GITTY UP!"
 
 clear
 echo "${GREEN}______ _____ _   _  _____ "
