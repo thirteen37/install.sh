@@ -1,12 +1,4 @@
 #!/bin/zsh
-# ==============================================================================
-# Title: install.sh
-# Author: Daniel Vier
-# Email: daniel.vier@gmail.com
-# Description: Automates the setup and configuration of macOS, including
-#              installation of essential applications and system preferences.
-# Last Updated: March 1, 2024
-# ==============================================================================
 
 source ./config
 
@@ -46,8 +38,27 @@ echo "${GREEN}Looking for updates.."
 echo
 sudo softwareupdate -i -a
 
+# Set host name
+echo
+echo -n "${RED}Change host name? ${NC}[Y/n]"
+read REPLY
+if [[ -z $REPLY || $REPLY =~ ^[Yy]$ ]]; then
+  echo "${RED}Please enter your host name:${NC}"
+  read hostname
+
+  sudo scutil --set HostName "$hostname"
+  sudo scutil --set LocalHostName "$hostname"
+  # sudo scutil --set ComputerName "$hostname"
+  dscacheutil -flushcache
+fi
+
 # Install Rosetta
-sudo softwareupdate --install-rosetta --agree-to-license
+echo
+echo -n "${RED}Install Rosetta? ${NC}[Y/n]"
+read REPLY
+if [[ -z $REPLY || $REPLY =~ ^[Yy]$ ]]; then
+  sudo softwareupdate --install-rosetta --agree-to-license
+fi
 
 # Install Homebrew
 echo
@@ -67,143 +78,12 @@ echo
 brew update && brew doctor
 export HOMEBREW_NO_INSTALL_CLEANUP=1
 
-# Check for Brewfile in the current directory and use it if present
-if [ -f "./Brewfile" ]; then
+# Check for Brewfile in the home directory and use it if present
+if [ -f "$HOME/Brewfile" ]; then
   echo
   echo "${GREEN}Brewfile found. Using it to install packages..."
   brew bundle
   echo "${GREEN}Installation from Brewfile complete."
-else
-  # If no Brewfile is present, continue with the default installation
-
-  # Install Casks and Formulae
-  echo
-  echo "${GREEN}Installing formulae..."
-  for formula in "${FORMULAE[@]}"; do
-    brew install "$formula"
-    if [ $? -ne 0 ]; then
-      echo "${RED}Failed to install $formula. Continuing...${NC}"
-    fi
-  done
-
-  echo "${GREEN}Installing casks..."
-  for cask in "${CASKS[@]}"; do
-    brew install --cask "$cask"
-    if [ $? -ne 0 ]; then
-      echo "${RED}Failed to install $cask. Continuing...${NC}"
-    fi
-  done
-
-  # App Store
-  echo
-  echo -n "${RED}Install apps from App Store? ${NC}[y/N]"
-  read REPLY
-  if [[ $REPLY =~ ^[Yy]$ ]]; then
-    brew install mas
-    for app in "${APPSTORE[@]}"; do
-      eval "mas install $app"
-    done
-  fi
-
-  # VS Code Extensions
-  echo
-  echo -n "${RED}Install VSCode Extensions? ${NC}[y/N]"
-  read REPLY
-  if [[ $REPLY =~ ^[Yy]$ ]]; then
-    # Install VS Code extensions from config.sh file
-    for extension in "${VSCODE[@]}"; do
-      code --install-extension "$extension"
-    done
-  fi
-fi
-
-# Install Node.js
-echo
-echo -n "${RED}Install Node.js via NVM or Brew? ${NC}[N/b]"
-read REPLY
-if [[ -z $REPLY || $REPLY =~ ^[Nn]$ ]]; then
-  echo "${GREEN}Installing NVM..."
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-
-  # Loads NVM
-  export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-
-  echo "${GREEN}Installing Node via NVM..."
-  nvm install --lts
-  nvm install node
-  nvm alias default node
-  nvm use default
-
-fi
-if [[ $REPLY =~ ^[Bb]$ ]]; then
-  echo "${GREEN}Installing Node via Homebrew..."
-  brew install node
-
-fi
-
-# Install NPM Packages
-echo
-echo "${GREEN}Installing Global NPM Packages..."
-npm install -g ${NPMPACKAGES[@]}
-
-# Optional Packages
-echo
-echo -n "${RED}Install .NET? ${NC}[y/N]"
-read REPLY
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  brew install dotnet
-  export DOTNET_ROOT="/opt/homebrew/opt/dotnet/libexec"
-fi
-
-echo
-echo -n "${RED}Install Firefox Developer Edition? ${NC}[y/N]"
-read REPLY
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  brew tap homebrew/cask-versions
-  brew install firefox-developer-edition
-fi
-
-echo
-echo -n "${RED}Install PosreSQL, MySQL & MongoDB? ${NC}[y/N]"
-read REPLY
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  # Postgres
-  brew install postgresql
-  # MySQL
-  brew install mysql
-  echo -n "${RED}Set up MySQL now? ${NC}[y/N]"
-  read REPLY
-  if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "${GREEN}Starting MySQL..."
-    brew services start mysql
-    sleep 2
-    mysql_secure_installation
-  fi
-  # MongoDB
-  brew tap mongodb/brew
-  brew install mongodb-community
-fi
-
-echo
-echo -n "${RED}Install Epic & Steam ${NC}[y/N]"
-read REPLY
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  brew install steam epic-games
-fi
-
-echo
-echo -n "${RED}Install Unity Hub? ${NC}[y/N]"
-read REPLY
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  brew install unity-hub
-fi
-
-echo
-echo -n "${RED}Install Figma? ${NC}[y/N]"
-read REPLY
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  brew install figma
 fi
 
 # Cleanup
@@ -262,12 +142,6 @@ git config --global color.ui true
 
 echo
 echo "${GREEN}GITTY UP!"
-
-# ohmyzsh
-echo
-echo "${GREEN}Installing ohmyzsh!"
-echo
-sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 
 clear
 echo "${GREEN}______ _____ _   _  _____ "
