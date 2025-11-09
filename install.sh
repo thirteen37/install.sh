@@ -107,9 +107,9 @@ echo -n "${RED}Configure default system settings? ${NC}[Y/n]"
 read REPLY
 if [[ -z $REPLY || $REPLY =~ ^[Yy]$ ]]; then
   echo "${GREEN}Configuring default settings..."
-  for setting in "${SETTINGS[@]}"; do
+  while IFS= read -r setting; do
     eval $setting
-  done
+  done < ./settings
 fi
 
 # Dock settings

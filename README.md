@@ -27,14 +27,17 @@ The script performs a variety of tasks to prepare a macOS machine for use:
 1. **Clone this repository** to your local machine.
 2. **Modify `config` file:**
 
-- Adjust `CASKS`, `FORMULAE`, `NPMPACKAGES`, `VSCODE`, and `APPSTORE` sections to select the software you wish to install.
-- Change the `SETTINGS` to choose system settings or `DOCK-*` to choose dock setup.
+- Change `DOCK-*` to choose dock setup.
 
-- **Optional: Add a `Brewfile`:**
+3. **Modify `settings` file:**
+
+- Set default preferences.
+
+4. **Optional: Add a `Brewfile`:**
   - Add a Brewfile to the same directory as `install.sh` and it will run instead of the selected packages in `config`.
     (Note that `SETTINGS` will still be applied from `config`)
 
-3. **Run the Script:** Open Terminal, navigate to the cloned directory, and execute:
+5. **Run the Script:** Open Terminal, navigate to the cloned directory, and execute:
 
 ```
 ./install.sh
