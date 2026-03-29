@@ -71,6 +71,10 @@ echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >>${HOME}/.zprofile
 # Immediately evaluate the Homebrew environment settings for the current session
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
+# Add $HOME/bin to PATH
+echo 'export PATH="$HOME/bin:$PATH"' >>${HOME}/.zprofile
+export PATH="$HOME/bin:$PATH"
+
 # Check installation and update
 echo
 echo "${GREEN}Checking installation.."
@@ -90,6 +94,18 @@ fi
 echo
 echo "${GREEN}Cleaning up..."
 brew update && brew upgrade && brew cleanup && brew doctor
+
+# Install chezmoi-split
+echo
+echo "${GREEN}Installing chezmoi-split..."
+mkdir -p "$HOME/bin"
+ARCH=$(uname -m)
+case "$ARCH" in
+  arm64) ARCH="arm64" ;;
+  x86_64) ARCH="amd64" ;;
+esac
+CHEZMOI_SPLIT_VERSION=$(curl -fsSL https://api.github.com/repos/thirteen37/chezmoi-split/releases/latest | grep '"tag_name"' | sed 's/.*"v\(.*\)".*/\1/')
+curl -fsSL "https://github.com/thirteen37/chezmoi-split/releases/download/v${CHEZMOI_SPLIT_VERSION}/chezmoi-split_${CHEZMOI_SPLIT_VERSION}_darwin_${ARCH}.tar.gz" | tar xz -C "$HOME/bin" chezmoi-split
 
 # Auto-update
 echo
