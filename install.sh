@@ -78,13 +78,15 @@ echo
 brew update && brew doctor
 export HOMEBREW_NO_INSTALL_CLEANUP=1
 
-# Check for Brewfile in the home directory and use it if present
-if [ -f "$HOME/Brewfile" ]; then
-  echo
-  echo "${GREEN}Brewfile found. Using it to install packages..."
-  brew bundle
-  echo "${GREEN}Installation from Brewfile complete."
-fi
+# Install packages
+echo
+echo "${GREEN}Installing packages..."
+brew bundle --file=- <<EOF
+brew "chezmoi"
+brew "gh"
+cask "1password"
+cask "1password-cli"
+EOF
 
 # Cleanup
 echo
