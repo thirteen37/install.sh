@@ -1,0 +1,26 @@
+# Dock configuration
+# > app_name_to_replace|replacement_app_path
+# + app_path_to_add
+# - app_name_to_remove
+
+> Safari|/Applications/Brave Browser.app
+> Mail|/Applications/Setapp/Spark Mail.app
+> Calendar|/Applications/Fantastical.app
+
++ /Applications/Bloom.app
++ /Applications/Ghostty.app
++ /Applications/Spotify.app
++ /Applications/Ferdium.app
++ /Applications/Beeper.app
++ /Applications/Obsidian.app
++ /Applications/1Password.app
++ /Applications/Zed.app
+
+- Contacts
+- FaceTime
+- Maps
+- Messages
+- Music
+- Photos
+- Reminders
+- TV

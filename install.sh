@@ -1,7 +1,5 @@
 #!/bin/zsh
 
-source ./config
-
 # COLOR
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -130,20 +128,37 @@ echo
 echo -n "${RED}Apply Dock settings?? ${NC}[y/N]"
 read REPLY
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-  brew install dockutil
-  # Handle replacements
-  for item in "${DOCK_REPLACE[@]}"; do
-    IFS="|" read -r add_app replace_app <<<"$item"
-    dockutil --add "$add_app" --replacing "$replace_app" &>/dev/null
-  done
-  # Handle additions
-  for app in "${DOCK_ADD[@]}"; do
-    dockutil --add "$app" &>/dev/null
-  done
-  # Handle removals
-  for app in "${DOCK_REMOVE[@]}"; do
-    dockutil --remove "$app" &>/dev/null
-  done
+  typeset -a dock_skipped=()
+  while read -r op arg; do
+    [[ -z "$op" || "$op" == \#* ]] && continue
+    case $op in
+      ">")
+        IFS="|" read -r replace_app add_app <<<"$arg"
+        if [[ ! -e "$add_app" ]]; then
+          dock_skipped+=("$add_app")
+          continue
+        fi
+        dockutil --add "$add_app" --replacing "$replace_app" &>/dev/null
+        ;;
+      "+")
+        if [[ ! -e "$arg" ]]; then
+          dock_skipped+=("$arg")
+          continue
+        fi
+        dockutil --add "$arg" &>/dev/null
+        ;;
+      "-")
+        dockutil --remove "$arg" &>/dev/null
+        ;;
+    esac
+  done < ./dock
+  # Report skipped apps
+  if (( ${#dock_skipped[@]} )); then
+    echo "${RED}Skipped (not found):${NC}"
+    for app in "${dock_skipped[@]}"; do
+      echo "  $app"
+    done
+  fi
 fi
 
 clear
