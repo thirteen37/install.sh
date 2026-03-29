@@ -85,12 +85,7 @@ export HOMEBREW_NO_INSTALL_CLEANUP=1
 # Install packages
 echo
 echo "${GREEN}Installing packages..."
-brew bundle --file=- <<EOF
-brew "chezmoi"
-brew "gh"
-cask "1password"
-cask "1password-cli"
-EOF
+brew bundle --file=./Brewfile
 
 # Cleanup
 echo
