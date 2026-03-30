@@ -1,5 +1,6 @@
 brew "chezmoi"
 brew "dockutil"
 brew "gh"
+brew "pinentry-mac"
 cask "1password"
 cask "1password-cli"
