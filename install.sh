@@ -5,6 +5,24 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
+# Prompt for confirmation. Usage: confirm "message" [N]
+# Default is Y unless second argument is N.
+confirm() {
+  local prompt=$1 default=${2:-Y}
+  echo
+  if [[ $default == Y ]]; then
+    echo -n "${RED}${prompt} ${NC}[Y/n] "
+  else
+    echo -n "${RED}${prompt} ${NC}[y/N] "
+  fi
+  read REPLY
+  if [[ $default == Y ]]; then
+    [[ -z $REPLY || $REPLY =~ ^[Yy]$ ]]
+  else
+    [[ $REPLY =~ ^[Yy]$ ]]
+  fi
+}
+
 #########
 # Start #
 #########
@@ -31,16 +49,15 @@ while true; do
 done 2>/dev/null &
 
 # Update macOS
-echo
-echo "${GREEN}Looking for updates.."
-echo
-sudo softwareupdate -i -a
+if confirm "Install macOS updates?"; then
+  echo
+  echo "${GREEN}Looking for updates.."
+  echo
+  sudo softwareupdate -i -a
+fi
 
 # Set host name
-echo
-echo -n "${RED}Change host name? ${NC}[Y/n]"
-read REPLY
-if [[ -z $REPLY || $REPLY =~ ^[Yy]$ ]]; then
+if confirm "Change host name?"; then
   echo "${RED}Please enter your host name:${NC}"
   read hostname
 
@@ -51,72 +68,93 @@ if [[ -z $REPLY || $REPLY =~ ^[Yy]$ ]]; then
 fi
 
 # Install Rosetta
-echo
-echo -n "${RED}Install Rosetta? ${NC}[Y/n]"
-read REPLY
-if [[ -z $REPLY || $REPLY =~ ^[Yy]$ ]]; then
-  sudo softwareupdate --install-rosetta --agree-to-license
+if confirm "Install Rosetta?"; then
+  if ! /usr/bin/pgrep -q oahd; then
+    sudo softwareupdate --install-rosetta --agree-to-license
+  else
+    echo "${GREEN}Rosetta is already installed."
+  fi
 fi
 
-# Install Homebrew
-echo
-echo "${GREEN}Installing Homebrew"
-echo
-NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# Install Homebrew and packages
+if confirm "Install Homebrew and packages?"; then
+  # Install Homebrew if not already present
+  if ! command -v brew &>/dev/null; then
+    echo
+    echo "${GREEN}Installing Homebrew"
+    echo
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  else
+    echo "${GREEN}Homebrew is already installed."
+  fi
 
-# Append Homebrew initialization to .zprofile
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >>${HOME}/.zprofile
-# Immediately evaluate the Homebrew environment settings for the current session
-eval "$(/opt/homebrew/bin/brew shellenv)"
+  # Append Homebrew initialization to .zprofile (idempotent)
+  grep -qF 'eval "$(/opt/homebrew/bin/brew shellenv)"' "${HOME}/.zprofile" 2>/dev/null || \
+    echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >>"${HOME}/.zprofile"
+  eval "$(/opt/homebrew/bin/brew shellenv)"
 
-# Add $HOME/bin to PATH
-echo 'export PATH="$HOME/bin:$PATH"' >>${HOME}/.zprofile
-export PATH="$HOME/bin:$PATH"
+  # Add $HOME/bin to PATH (idempotent)
+  grep -qF 'export PATH="$HOME/bin:$PATH"' "${HOME}/.zprofile" 2>/dev/null || \
+    echo 'export PATH="$HOME/bin:$PATH"' >>"${HOME}/.zprofile"
+  export PATH="$HOME/bin:$PATH"
 
-# Check installation and update
-echo
-echo "${GREEN}Checking installation.."
-echo
-brew update && brew doctor
-export HOMEBREW_NO_INSTALL_CLEANUP=1
+  # Check installation and update
+  echo
+  echo "${GREEN}Checking installation.."
+  echo
+  brew update && brew doctor
+  export HOMEBREW_NO_INSTALL_CLEANUP=1
 
-# Install packages
-echo
-echo "${GREEN}Installing packages..."
-brew bundle --file=./Brewfile
+  # Install packages
+  echo
+  echo "${GREEN}Installing packages..."
+  brew bundle --file=./Brewfile
 
-# Cleanup
-echo
-echo "${GREEN}Cleaning up..."
-brew update && brew upgrade && brew cleanup && brew doctor
+  # Cleanup
+  echo
+  echo "${GREEN}Cleaning up..."
+  brew update && brew upgrade && brew cleanup && brew doctor
+fi
 
 # Install chezmoi-split
-echo
-echo "${GREEN}Installing chezmoi-split..."
-mkdir -p "$HOME/bin"
-ARCH=$(uname -m)
-case "$ARCH" in
-  arm64) ARCH="arm64" ;;
-  x86_64) ARCH="amd64" ;;
-esac
-CHEZMOI_SPLIT_VERSION=$(curl -fsSL https://api.github.com/repos/thirteen37/chezmoi-split/releases/latest | grep '"tag_name"' | sed 's/.*"v\(.*\)".*/\1/')
-curl -fsSL "https://github.com/thirteen37/chezmoi-split/releases/download/v${CHEZMOI_SPLIT_VERSION}/chezmoi-split_${CHEZMOI_SPLIT_VERSION}_darwin_${ARCH}.tar.gz" | tar xz -C "$HOME/bin" chezmoi-split
+if confirm "Install chezmoi-split?"; then
+  echo "${GREEN}Installing chezmoi-split..."
+  mkdir -p "$HOME/bin"
+  ARCH=$(uname -m)
+  case "$ARCH" in
+    arm64) ARCH="arm64" ;;
+    x86_64) ARCH="amd64" ;;
+  esac
+  CHEZMOI_SPLIT_VERSION=$(curl -fsSL https://api.github.com/repos/thirteen37/chezmoi-split/releases/latest | grep '"tag_name"' | sed 's/.*"v\(.*\)".*/\1/')
+  curl -fsSL "https://github.com/thirteen37/chezmoi-split/releases/download/v${CHEZMOI_SPLIT_VERSION}/chezmoi-split_${CHEZMOI_SPLIT_VERSION}_darwin_${ARCH}.tar.gz" | tar xz -C "$HOME/bin" chezmoi-split
+fi
+
+# Enable Touch ID for sudo
+if confirm "Enable Touch ID for sudo?"; then
+  if ! grep -qF 'pam_tid.so' /etc/pam.d/sudo_local 2>/dev/null; then
+    if [[ ! -f /opt/homebrew/lib/pam/pam_reattach.so ]]; then
+      echo "${RED}Warning: pam_reattach.so not found. Install pam-reattach via Homebrew first.${NC}"
+    else
+      echo "${GREEN}Configuring Touch ID for sudo..."
+      sudo tee /etc/pam.d/sudo_local <<'EOF' >/dev/null
+auth       optional       /opt/homebrew/lib/pam/pam_reattach.so
+auth       sufficient     pam_tid.so
+EOF
+    fi
+  else
+    echo "${GREEN}Touch ID for sudo is already configured."
+  fi
+fi
 
 # Auto-update
-echo
-echo -n "${RED}Auto-update brew? ${NC}[Y/n]"
-read REPLY
-if [[ -z $REPLY || $REPLY =~ ^[Yy]$ ]]; then
+if confirm "Auto-update brew?"; then
   mkdir -p ~/Library/LaunchAgents
   brew tap homebrew/autoupdate
   brew autoupdate start $HOMEBREW_UPDATE_FREQUENCY --upgrade --cleanup --immediate --sudo
 fi
 
 # Settings
-echo
-echo -n "${RED}Configure default system settings? ${NC}[Y/n]"
-read REPLY
-if [[ -z $REPLY || $REPLY =~ ^[Yy]$ ]]; then
+if confirm "Configure default system settings?"; then
   echo "${GREEN}Configuring default settings..."
   while IFS= read -r setting; do
     eval $setting
@@ -124,10 +162,7 @@ if [[ -z $REPLY || $REPLY =~ ^[Yy]$ ]]; then
 fi
 
 # Dock settings
-echo
-echo -n "${RED}Apply Dock settings?? ${NC}[y/N]"
-read REPLY
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+if confirm "Apply Dock settings?" N; then
   typeset -a dock_skipped=()
   while read -r op arg; do
     [[ -z "$op" || "$op" == \#* ]] && continue
